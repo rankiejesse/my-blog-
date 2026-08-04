@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>小鸡</title>
+<style>
+  body { margin:0; overflow:hidden; background:#aee7ff; font-family: sans-serif; }
+  #bar { position:fixed; top:12px; left:12px; z-index:5; background:rgba(255,255,255,.85); padding:8px 12px; border-radius:10px; font-size:14px; color:#333; box-shadow:0 2px 6px rgba(0,0,0,.15); }
+  #bar .track { width:160px; height:12px; background:#eee; border-radius:6px; margin-top:4px; overflow:hidden; }
+  #bar .fill { height:100%; width:100%; background:#ffd94a; border-radius:6px; transition:width .3s; }
+  #tip { position:fixed; bottom:12px; left:0; right:0; text-align:center; color:#fff; font-size:13px; text-shadow:0 1px 2px rgba(0,0,0,.3); z-index:5; }
+  canvas { display:block; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="bar">饱食度 <span id="val">100</span><div class="track"><div class="fill" id="fill"></div></div></div>
+<div id="tip">点草地撒米，喂小鸡</div>
+<canvas id="cv"></canvas>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W,H;
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+addEventListener('resize',resize);resize();
+
+const P=6;
+const PAL={R:'#e23b3b',Y:'#ffd94a',B:'#3a2e2a',O:'#ff9d2e',W:'#fff3dd'};
+const BODY_A=[
+'......RRR.......',
+'.....RRRRR......',
+'....YYYYYYY.....',
+'...YYYYYYYYYY...',
+'...YYYYYYYYYY...',
+'..YYYYBBYYYYY...',
+'..YYYYYYYYYOOO..',
+'..YYYYYYYYOOOO..',
+'...YYYYYYYYYY...',
+'...YYYYYYYYYY...',
+'....YYYYYYYY....',
+'....WWWWWWWW....',
+'...WWW....WWW...',
+'..OOO......OOO..'];
+const BODY_B=BODY_A.map((r,i)=>i===12?'....WWW....WWW..':i===13?'...OOO......OOO.':r);
+
+function drawChick(cx,cy,frame,lean){
+  const rows=frame?BODY_B:BODY_A;
+  const leanOff=lean?1:0;
+  for(let r=0;r<rows.length;r++){
+    for(let c=0;c<16;c++){
+      const ch=rows[r][c];
+      if(ch==='.')continue;
+      ctx.fillStyle=PAL[ch];
+      ctx.fillRect(Math.round(cx+(c-leanOff-8)*P), Math.round(cy-(14-r-leanOff)*P), P, P);
+    }
+  }
+}
+
+const chick={x:200,y:0,state:'walk',target:200,timer:0,frame:0,step:0,lean:false,sat:100};
+const grains=[];
+const clouds=[{x:100,y:60,s:1},{x:420,y:110,s:.7},{x:700,y:55,s:1.2}];
+let last=performance.now(),satTimer=0,time=0;
+
+const val=document.getElementById('val'),fill=document.getElementById('fill'),tip=document.getElementById('tip');
+function updateUI(){
+  val.textContent=Math.round(chick.sat);
+  fill.style.width=chick.sat+'%';
+  tip.textContent=chick.sat<=0?'小鸡饿趴下了，快撒米救它':'点草地撒米，喂小鸡';
+}
+
+function eat(g){
+  const i=grains.indexOf(g);
+  if(i>=0)grains.splice(i,1);
+  chick.sat=Math.min(100,chick.sat+10);
+  updateUI();
+}
+
+function updateChick(dt){
+  if(chick.sat<=0){chick.state='sleep';return;}
+  let targetGrain=null,best=1e9;
+  for(const g of grains){const d=Math.abs(g.x-chick.x);if(d<best){best=d;targetGrain=g;}}
+  if(targetGrain){
+    chick.state='walk';chick.target=targetGrain.x;
+  } else if(chick.state==='walk'&&!targetGrain){
+    // 已到原目标，原地待一会
+  }
+  if(chick.state==='walk'){
+    const dir=Math.sign(chick.target-chick.x);
+    chick.x+=dir*60*dt;
+    chick.step+=dt*6;
+    chick.frame=Math.floor(chick.step)%2;
+    if(Math.abs(chick.target-chick.x)<5){
+      chick.x=chick.target;
+      if(targetGrain)eat(targetGrain);
+      else{chick.state='idle';chick.timer=0.5+Math.random()*1.5;}
+    }
+  } else if(chick.state==='idle'){
+    chick.timer-=dt;
+    if(chick.timer<=0){
+      if(Math.random()<0.45){chick.state='peck';chick.lean=true;chick.timer=0.7;}
+      else{chick.state='walk';chick.target=60+Math.random()*(W-120);}
+    }
+  } else if(chick.state==='peck'){
+    chick.timer-=dt;
+    if(chick.timer<=0){chick.lean=false;chick.state='idle';chick.timer=0.8;}
+  }
+}
+
+function draw(dt){
+  ctx.fillStyle='#aee7ff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ffe28a';ctx.beginPath();ctx.arc(W-70,60,26,0,7);ctx.fill();
+  for(const c of clouds){
+    c.x+=9*c.s*dt;if(c.x>W+90)c.x=-90;
+    ctx.fillStyle='rgba(255,255,255,.92)';
+    ctx.fillRect(c.x,c.y,46*c.s,12*c.s);
+    ctx.fillRect(c.x+8*c.s,c.y-8*c.s,30*c.s,8*c.s);
+    ctx.fillRect(c.x+14*c.s,c.y+8*c.s,24*c.s,7*c.s);
+  }
+  ctx.fillStyle='#8fd46a';ctx.fillRect(0,H-70,W,70);
+  ctx.fillStyle='#7cc258';ctx.fillRect(0,H-70,W,8);
+  ctx.fillStyle='#5ea844';
+  for(let i=0;i<W;i+=26){const h=6+Math.sin(i*0.1+time*0.002)*3;ctx.fillRect(i,H-70-h,3,h);}
+  for(const g of grains){
+    ctx.fillStyle='#ffd27d';
+    ctx.fillRect(g.x-3,g.y,6,2);
+    ctx.fillRect(g.x-1,g.y-2,4,2);
+  }
+  chick.y=H-70;
+  if(chick.state==='sleep'){
+    drawChick(chick.x,chick.y+4,0,false);
+    ctx.fillStyle='#6a5acd';ctx.font='bold 18px sans-serif';
+    ctx.fillText('Zzz',chick.x+20,chick.y-34);
+  } else {
+    drawChick(chick.x,chick.y,chick.frame,chick.lean);
+  }
+}
+
+cv.addEventListener('pointerdown',e=>{
+  const x=e.clientX,y=e.clientY;
+  for(let i=0;i<3;i++)grains.push({x:x+(Math.random()*30-15),y:H-70-Math.random()*6});
+  if(grains.length>24)grains.splice(0,grains.length-24);
+  if(chick.sat<=0)chick.sat=1;
+});
+
+function tick(now){
+  const dt=Math.min((now-last)/1000,0.1);last=now;time=now;
+  satTimer+=dt;
+  if(satTimer>1.5){satTimer=0;chick.sat=Math.max(0,chick.sat-1);updateUI();}
+  updateChick(dt);
+  draw(dt);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
