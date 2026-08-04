@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典贪吃蛇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 12px;
+            font-size: 32px;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            width: 400px;
+            margin: 0 auto 12px;
+            font-size: 16px;
+            color: #94a3b8;
+        }
+
+        .score-board span {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        canvas {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: block;
+        }
+
+        .controls {
+            margin-top: 15px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .btn {
+            margin-top: 12px;
+            padding: 8px 18px;
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #7dd3fc;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>经典贪吃蛇</h1>
+    <div class="score-board">
+        <div>当前得分: <span id="currentScore">0</span></div>
+        <div>最高纪录: <span id="highScore">0</span></div>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="controls">按 键盘方向键 (↑ ↓ ← →) 或 WASD 改变方向</div>
+    <button class="btn" onclick="resetGame()">重新开始</button>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const currentScoreEl = document.getElementById("currentScore");
+    const highScoreEl = document.getElementById("highScore");
+
+    const grid = 20; // 每一个小格子的像素
+    const tileCount = canvas.width / grid; // 20x20 的网格
+
+    let snake = [];
+    let food = { x: 0, y: 0 };
+    let dx = grid;
+    let dy = 0;
+    let score = 0;
+    let speed = 120; // 移动间隔毫秒
+    let gameLoop = null;
+    let changingDirection = false;
+
+    // 本地存储高分
+    let highScore = parseInt(localStorage.getItem("snake_game_highscore")) || 0;
+    highScoreEl.innerText = highScore;
+
+    function initGame() {
+        snake = [
+            { x: 160, y: 200 },
+            { x: 140, y: 200 },
+            { x: 120, y: 200 }
+        ];
+        score = 0;
+        dx = grid;
+        dy = 0;
+        speed = 120;
+        currentScoreEl.innerText = score;
+        createFood();
+        if (gameLoop) clearInterval(gameLoop);
+        gameLoop = setInterval(main, speed);
+    }
+
+    function main() {
+        if (hasGameEnded()) {
+            clearInterval(gameLoop);
+            alert("游戏结束！最终得分: " + score);
+            return;
+        }
+
+        changingDirection = false;
+        clearCanvas();
+        drawFood();
+        moveSnake();
+        drawSnake();
+    }
+
+    function clearCanvas() {
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawSnake() {
+        snake.forEach((part, index) => {
+            // 蛇头颜色与蛇身稍有区分
+            ctx.fillStyle = index === 0 ? "#4ade80" : "#22c55e";
+            ctx.strokeStyle = "#1e293b";
+            ctx.fillRect(part.x, part.y, grid, grid);
+            ctx.strokeRect(part.x, part.y, grid, grid);
+        });
+    }
+
+    function moveSnake() {
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+        snake.unshift(head);
+
+        // 吃食物判定
+        const hasEaten = snake[0].x === food.x && snake[0].y === food.y;
+        if (hasEaten) {
+            score += 10;
+            currentScoreEl.innerText = score;
+
+            if (score > highScore) {
+                highScore = score;
+                highScoreEl.innerText = highScore;
+                localStorage.setItem("snake_game_highscore", highScore);
+            }
+
+            createFood();
+            
+            // 随着分数增加，轻微提升速度
+            if (speed > 50) {
+                clearInterval(gameLoop);
+                speed -= 2;
+                gameLoop = setInterval(main, speed);
+            }
+        } else {
+            snake.pop();
+        }
+    }
+
+    function hasGameEnded() {
+        // 碰撞自身
+        for (let i = 4; i < snake.length; i++) {
+            if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
+        }
+
+        // 碰撞墙壁
+        const hitLeft = snake[0].x < 0;
+        const hitRight = snake[0].x >= canvas.width;
+        const hitTop = snake[0].y < 0;
+        const hitBottom = snake[0].y >= canvas.height;
+
+        return hitLeft || hitRight || hitTop || hitBottom;
+    }
+
+    function randomFoodCoord(max) {
+        return Math.floor(Math.random() * (max / grid)) * grid;
+    }
+
+    function createFood() {
+        food.x = randomFoodCoord(canvas.width);
+        food.y = randomFoodCoord(canvas.height);
+
+        // 确保食物不生成在蛇身上
+        snake.forEach(part => {
+            const hasEaten = part.x === food.x && part.y === food.y;
+            if (hasEaten) createFood();
+        });
+    }
+
+    function drawFood() {
+        ctx.fillStyle = "#f43f5e";
+        ctx.fillRect(food.x, food.y, grid, grid);
+    }
+
+    // 键盘方向控制
+    document.addEventListener("keydown", changeDirection);
+
+    function changeDirection(event) {
+        const keyPressed = event.key;
+        if (changingDirection) return;
+
+        const goingUp = dy === -grid;
+        const goingDown = dy === grid;
+        const goingRight = dx === grid;
+        const goingLeft = dx === -grid;
+
+        if ((keyPressed === "ArrowLeft" || keyPressed === "a" || keyPressed === "A") && !goingRight) {
+            dx = -grid;
+            dy = 0;
+            changingDirection = true;
+        }
+        if ((keyPressed === "ArrowUp" || keyPressed === "w" || keyPressed === "W") && !goingDown) {
+            dx = 0;
+            dy = -grid;
+            changingDirection = true;
+        }
+        if ((keyPressed === "ArrowRight" || keyPressed === "d" || keyPressed === "D") && !goingLeft) {
+            dx = grid;
+            dy = 0;
+            changingDirection = true;
+        }
+        if ((keyPressed === "ArrowDown" || keyPressed === "s" || keyPressed === "S") && !goingUp) {
+            dx = 0;
+            dy = grid;
+            changingDirection = true;
+        }
+    }
+
+    function resetGame() {
+        initGame();
+    }
+
+    initGame();
+</script>
+</body>
+</html>
