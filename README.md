@@ -1,3 +1,10 @@
 # my-blog-
-Hello world  
+
+Hello world
 baby
+
+这是我的练手仓库。刚来 GitHub 不久，拿这里试各种功能用的。
+
+当前进度：
+- 2026-08-03 建仓库，写 README
+- 2026-08-04 新建 main 文件，练手整理仓库
