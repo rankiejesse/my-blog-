@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 网页小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background: #faf8ef;
+            color: #776e65;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .header {
+            width: 360px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #776e65;
+        }
+
+        .scores-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .score-box {
+            background: #bbada0;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-align: center;
+            min-width: 70px;
+        }
+
+        .score-box label {
+            display: block;
+            font-size: 10px;
+            color: #eee4da;
+            text-transform: uppercase;
+        }
+
+        .score-box span {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .controls {
+            width: 360px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: #8f7a66;
+            color: #f9f6f2;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #9f8a76;
+        }
+
+        /* 棋盘 */
+        .grid-container {
+            width: 360px;
+            height: 360px;
+            background: #bbada0;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            position: relative;
+        }
+
+        .cell {
+            background: rgba(238, 228, 218, 0.35);
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            font-weight: bold;
+            transition: all 0.15s ease-in-out;
+            user-select: none;
+        }
+
+        /* 不同数值的颜色 */
+        .cell[data-value="2"] { background: #eee4da; color: #776e65; }
+        .cell[data-value="4"] { background: #ede0c8; color: #776e65; }
+        .cell[data-value="8"] { background: #f2b179; color: #f9f6f2; }
+        .cell[data-value="16"] { background: #f59563; color: #f9f6f2; }
+        .cell[data-value="32"] { background: #f67c5f; color: #f9f6f2; }
+        .cell[data-value="64"] { background: #f65e3b; color: #f9f6f2; }
+        .cell[data-value="128"] { background: #edcf72; color: #f9f6f2; font-size: 24px; }
+        .cell[data-value="256"] { background: #edcc61; color: #f9f6f2; font-size: 24px; }
+        .cell[data-value="512"] { background: #edc850; color: #f9f6f2; font-size: 24px; }
+        .cell[data-value="1024"] { background: #edc53f; color: #f9f6f2; font-size: 20px; }
+        .cell[data-value="2048"] { background: #edc22e; color: #f9f6f2; font-size: 20px; }
+
+        .tips {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #776e65;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="title">2048</div>
+    <div class="scores-container">
+        <div class="score-box">
+            <label>SCORE</label>
+            <span id="score">0</span>
+        </div>
+        <div class="score-box">
+            <label>BEST</label>
+            <span id="best">0</span>
+        </div>
+    </div>
+</div>
+
+<div class="controls">
+    <span>合并数字拼出 <strong>2048</strong>！</span>
+    <button class="btn" onclick="restartGame()">新游戏</button>
+</div>
+
+<div class="grid-container" id="grid"></div>
+
+<div class="tips">提示：键盘 <strong>↑ ↓ ← →</strong> 方向键操控</div>
+
+<script>
+    const GRID_SIZE = 4;
+    const gridEl = document.getElementById("grid");
+    const scoreEl = document.getElementById("score");
+    const bestEl = document.getElementById("best");
+
+    let board = [];
+    let score = 0;
+    let bestScore = parseInt(localStorage.getItem("2048_best")) || 0;
+
+    bestEl.innerText = bestScore;
+
+    // 初始化网格
+    function createGrid() {
+        gridEl.innerHTML = "";
+        for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            gridEl.appendChild(cell);
+        }
+    }
+
+    // 初始化游戏
+    function init() {
+        createGrid();
+        const savedState = JSON.parse(localStorage.getItem("2048_state"));
+        
+        // 读取存储的进度，如果没有则新开局
+        if (savedState && savedState.board) {
+            board = savedState.board;
+            score = savedState.score || 0;
+        } else {
+            resetBoard();
+        }
+        updateView();
+    }
+
+    function resetBoard() {
+        board = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+        score = 0;
+        addRandomTile();
+        addRandomTile();
+        saveState();
+    }
+
+    function restartGame() {
+        resetBoard();
+        updateView();
+    }
+
+    // 随机生成一个 2 或 4
+    function addRandomTile() {
+        const emptyCells = [];
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] === 0) emptyCells.push({ r, c });
+            }
+        }
+        if (emptyCells.length > 0) {
+            const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            board[r][c] = Math.random() < 0.9 ? 2 : 4;
+        }
+    }
+
+    // 渲染画面与更新存储
+    function updateView() {
+        const cells = gridEl.querySelectorAll(".cell");
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const val = board[r][c];
+                const cell = cells[r * GRID_SIZE + c];
+                cell.innerText = val > 0 ? val : "";
+                cell.setAttribute("data-value", val);
+            }
+        }
+        scoreEl.innerText = score;
+        if (score > bestScore) {
+            bestScore = score;
+            bestEl.innerText = bestScore;
+            localStorage.setItem("2048_best", bestScore);
+        }
+    }
+
+    // 保存存档
+    function saveState() {
+        localStorage.setItem("2048_state", JSON.stringify({ board, score }));
+    }
+
+    // 移动与合并核心逻辑
+    function slide(row) {
+        let arr = row.filter(val => val !== 0);
+        for (let i = 0; i < arr.length - 1; i++) {
+            if (arr[i] === arr[i + 1]) {
+                arr[i] *= 2;
+                score += arr[i];
+                arr[i + 1] = 0;
+            }
+        }
+        arr = arr.filter(val => val !== 0);
+        while (arr.length < GRID_SIZE) arr.push(0);
+        return arr;
+    }
+
+    function move(dir) {
+        let moved = false;
+        let prevBoard = JSON.stringify(board);
+
+        if (dir === "left" || dir === "right") {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                let row = board[r];
+                if (dir === "right") row.reverse();
+                let newRow = slide(row);
+                if (dir === "right") newRow.reverse();
+                board[r] = newRow;
+            }
+        } else {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                let col = [board[0][c], board[1][c], board[2][c], board[3][c]];
+                if (dir === "down") col.reverse();
+                let newCol = slide(col);
+                if (dir === "down") newCol.reverse();
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    board[r][c] = newCol[r];
+                }
+            }
+        }
+
+        if (JSON.stringify(board) !== prevBoard) {
+            moved = true;
+            addRandomTile();
+            saveState();
+            updateView();
+            checkGameOver();
+        }
+    }
+
+    // 检查游戏结束
+    function checkGameOver() {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] === 0) return;
+                if (c < GRID_SIZE - 1 && board[r][c] === board[r][c + 1]) return;
+                if (r < GRID_SIZE - 1 && board[r][c] === board[r + 1][c]) return;
+            }
+        }
+        setTimeout(() => alert("游戏结束！无可用滑动步数。"), 100);
+    }
+
+    // 键盘监听
+    document.addEventListener("keydown", e => {
+        if (e.key === "ArrowLeft") move("left");
+        else if (e.key === "ArrowRight") move("right");
+        else if (e.key === "ArrowUp") move("up");
+        else if (e.key === "ArrowDown") move("down");
+    });
+
+    init();
+</script>
+</body>
+</html>
