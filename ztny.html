@@ -184,7 +184,7 @@
             transform: none;
         }
 
-        /* 字幕弹幕容器（已针对手机端防防超宽做优化） */
+        /* 字幕弹幕容器 */
         .subtitle-box {
             position: fixed;
             bottom: 100px;
@@ -206,7 +206,7 @@
             z-index: 99;
             pointer-events: none;
             text-align: center;
-            max-width: 90vw; /* 适应手机屏幕，防止超出两边 */
+            max-width: 90vw;
             white-space: normal;
             word-break: break-word;
         }
@@ -266,7 +266,7 @@
                     <!-- 顶部辅助线 -->
                     <line x1="400" y1="40" x2="400" y2="100" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="5,5"/>
 
-                    <!-- 领带图形 (默认隐藏，扭腰时出现) -->
+                    <!-- 领带图形 (默认隐藏，字幕结束后出现) -->
                     <g class="tie-group" id="tieGroup">
                         <!-- 领带结 -->
                         <polygon points="392,42 408,42 405,52 395,52" fill="#f43f5e" stroke="#be123c" stroke-width="1"/>
@@ -393,17 +393,6 @@
                     subtitleBox.textContent = currentText;
                     subtitleBox.classList.add('show');
 
-                    // 当出现“把我的领带拿来”这句字幕时：戴上领带，并开启 5 秒扭腰动画
-                    if (currentText.includes("把我的领带拿来")) {
-                        tieGroup.classList.add('show');
-                        twistArea.classList.add('animating');
-
-                        setTimeout(() => {
-                            twistArea.classList.remove('animating');
-                            tieGroup.classList.remove('show');
-                        }, 5000); // 扭腰持续5秒
-                    }
-
                     // 每条字幕展示 1 秒（1000ms）
                     setTimeout(() => {
                         subtitleBox.classList.remove('show');
@@ -412,8 +401,17 @@
                         setTimeout(showNextSubtitle, 200);
                     }, 1000);
                 } else {
-                    isPlaying = false;
-                    playBtn.classList.remove('disabled');
+                    // 全部字幕播放完毕后，开始佩戴领带并扭腰！
+                    tieGroup.classList.add('show');
+                    twistArea.classList.add('animating');
+
+                    // 扭腰持续 5 秒
+                    setTimeout(() => {
+                        twistArea.classList.remove('animating');
+                        tieGroup.classList.remove('show');
+                        isPlaying = false;
+                        playBtn.classList.remove('disabled');
+                    }, 5000);
                 }
             }
 
