@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AI 社交 Client 原型</title>
+  <title>AI 社交 Client 原型 v2</title>
   <style>
     * {
       box-sizing: border-box;
@@ -51,6 +51,7 @@
       top: 0;
       left: 0;
       background: #ededed;
+      overflow-y: auto;
     }
 
     .tab-page.active {
@@ -59,6 +60,10 @@
     }
 
     /* 消息页面专用布局 */
+    #page-chat {
+      overflow-y: hidden;
+    }
+
     #chat-history {
       flex: 1;
       padding: 12px;
@@ -118,6 +123,16 @@
       color: #000;
     }
 
+    .debug-info {
+      font-size: 11px;
+      color: #888;
+      background: rgba(0,0,0,0.03);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      border: 1px dashed #ccc;
+    }
+
     /* 输入区域 */
     .input-bar {
       padding: 8px 12px;
@@ -151,6 +166,11 @@
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
+    }
+
+    .input-bar button:disabled {
+      background: #a5ebd0;
+      cursor: not-allowed;
     }
 
     /* 底部导航栏 */
@@ -211,11 +231,118 @@
       background: #3a3a3a;
     }
 
-    /* 占位展示卡片 */
-    .placeholder-page {
-      padding: 20px;
-      color: #666;
+    /* 通用表单与列表样式 */
+    .panel {
+      padding: 16px;
+    }
+
+    .panel-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .panel-title {
       font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 9px 0;
+      background: #07c160;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      padding: 6px 12px;
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .list-item-card {
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 10px;
+      background: #fafafa;
+    }
+
+    .list-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #e6f7ff;
+      color: #1890ff;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-right: 4px;
+    }
+
+    /* 提示 Toast */
+    .toast {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 200;
+      display: none;
     }
   </style>
 </head>
@@ -224,7 +351,7 @@
   <div class="header" id="header-title">消息</div>
 
   <div class="content">
-    <!-- 消息页 -->
+    <!-- 1. 消息页 -->
     <div class="tab-page active" id="page-chat">
       <div id="chat-history"></div>
       <div class="input-bar">
@@ -233,32 +360,88 @@
       </div>
     </div>
 
-    <!-- 其他 Tab 占位页 -->
+    <!-- 2. 联系人页 -->
     <div class="tab-page" id="page-contacts">
-      <div class="placeholder-page">
-        <h3>联系人列表</h3>
-        <p style="margin-top: 10px;">此处维护联系人人格、关联世界书及认定 User 身份。</p>
+      <div class="panel">
+        <div class="panel-card">
+          <div class="panel-title">当前联系人设置</div>
+          <div class="form-group">
+            <label>联系人名称</label>
+            <input type="text" id="contact-name" value="星璀" />
+          </div>
+          <div class="form-group">
+            <label>人格设定 (System Prompt)</label>
+            <textarea id="contact-prompt">你是一个性格有点腹黑但很体贴的助手，说话风趣幽默。</textarea>
+          </div>
+          <button class="btn-primary" id="save-contact-btn">保存联系人配置</button>
+        </div>
       </div>
     </div>
 
+    <!-- 3. 自设页 -->
     <div class="tab-page" id="page-profile">
-      <div class="placeholder-page">
-        <h3>自设管理</h3>
-        <p style="margin-top: 10px;">此处配置多套用户身份 Prompt。</p>
+      <div class="panel">
+        <div class="panel-card">
+          <div class="panel-title">当前用户身份 (User Profile)</div>
+          <div class="form-group">
+            <label>用户昵称</label>
+            <input type="text" id="user-name" value="Shen Yu" />
+          </div>
+          <div class="form-group">
+            <label>用户自设/身份背景</label>
+            <textarea id="user-prompt">大二学生，专业电子信息工程，平时喜欢技术项目和吃辣，讨厌冷食和葱姜蒜。</textarea>
+          </div>
+          <button class="btn-primary" id="save-user-btn">保存自设</button>
+        </div>
       </div>
     </div>
 
+    <!-- 4. 世界书页 -->
     <div class="tab-page" id="page-worldbook">
-      <div class="placeholder-page">
-        <h3>世界书</h3>
-        <p style="margin-top: 10px;">字典式知识库，关键词精准唤醒。</p>
+      <div class="panel">
+        <div class="panel-card">
+          <div class="panel-title">添加新词条 (Worldbook Entry)</div>
+          <div class="form-group">
+            <label>触发关键词 (多个以逗号/空格分隔)</label>
+            <input type="text" id="wb-keys" placeholder="例如: 模电 考试 课程" />
+          </div>
+          <div class="form-group">
+            <label>知识库注入内容</label>
+            <textarea id="wb-content" placeholder="输入当关键词被唤醒时需要动态注入上下文的内容..."></textarea>
+          </div>
+          <button class="btn-primary" id="add-wb-btn">添加词条</button>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">词条列表 (动态唤醒)</div>
+          <div class="item-list" id="wb-list"></div>
+        </div>
       </div>
     </div>
 
+    <!-- 5. 设置页 -->
     <div class="tab-page" id="page-settings">
-      <div class="placeholder-page">
-        <h3>系统设置</h3>
-        <p style="margin-top: 10px;">API BaseURL/Key、MCP 扩展与导入导出。</p>
+      <div class="panel">
+        <div class="panel-card">
+          <div class="panel-title">API 配置 (兼容 OpenAI 格式)</div>
+          <div class="form-group">
+            <label>API Base URL</label>
+            <input type="text" id="api-url" placeholder="https://api.openai.com/v1" />
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" id="api-key" placeholder="sk-..." />
+          </div>
+          <div class="form-group">
+            <label>模型名称 (Model)</label>
+            <input type="text" id="api-model" placeholder="gpt-3.5-turbo / deepseek-chat" value="gpt-3.5-turbo" />
+          </div>
+          <div class="form-group">
+            <label>多条消息拆分标记 (正则或字符)</label>
+            <input type="text" id="api-break" placeholder="默认 [BREAK] 或 \n\n" value="[BREAK]" />
+          </div>
+          <button class="btn-primary" id="save-settings-btn">保存 API 设置</button>
+        </div>
       </div>
     </div>
   </div>
@@ -294,7 +477,18 @@
     </div>
   </div>
 
+  <!-- 全局 Toast 提示 -->
+  <div class="toast" id="toast"></div>
+
   <script>
+    // --- 0. Toast 提示工具 ---
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
     // --- 1. Tab 切换逻辑 ---
     const tabItems = document.querySelectorAll('.tab-item');
     const tabPages = document.querySelectorAll('.tab-page');
@@ -314,14 +508,140 @@
       });
     });
 
-    // --- 2. 消息数据与渲染机制 ---
+    // --- 2. 持久化数据管理 (LocalStorage) ---
+    const DEFAULT_CONFIG = {
+      apiUrl: 'https://api.openai.com/v1',
+      apiKey: '',
+      apiModel: 'gpt-3.5-turbo',
+      breakTag: '[BREAK]'
+    };
+
+    const DEFAULT_WORLDBOOK = [
+      { id: 'wb-1', keys: ['模电', '模拟电子'], content: '[知识库-模电]: 用户目前正在攻读模拟电子线路课程，需要帮其复习电路图与运算放大器相关内容。' },
+      { id: 'wb-2', keys: ['辣', '火锅'], content: '[知识库-偏好]: 用户特别喜欢吃辣味食物和热火锅，极度讨厌冷食。' }
+    ];
+
+    let appConfig = JSON.parse(localStorage.getItem('app_config')) || DEFAULT_CONFIG;
+    let worldbook = JSON.parse(localStorage.getItem('app_worldbook')) || DEFAULT_WORLDBOOK;
+    let contactInfo = JSON.parse(localStorage.getItem('app_contact')) || {
+      name: '星璀',
+      prompt: '你是一个性格有点腹黑但很体贴的助手，说话风趣幽默。'
+    };
+    let userInfo = JSON.parse(localStorage.getItem('app_user')) || {
+      name: 'Shen Yu',
+      prompt: '大二学生，专业电子信息工程，平时喜欢技术项目和吃辣，讨厌冷食和葱姜蒜。'
+    };
+
+    // 初始化表单默认值
+    document.getElementById('api-url').value = appConfig.apiUrl;
+    document.getElementById('api-key').value = appConfig.apiKey;
+    document.getElementById('api-model').value = appConfig.apiModel;
+    document.getElementById('api-break').value = appConfig.breakTag;
+
+    document.getElementById('contact-name').value = contactInfo.name;
+    document.getElementById('contact-prompt').value = contactInfo.prompt;
+
+    document.getElementById('user-name').value = userInfo.name;
+    document.getElementById('user-prompt').value = userInfo.prompt;
+
+    // 表单保存事件
+    document.getElementById('save-settings-btn').addEventListener('click', () => {
+      appConfig.apiUrl = document.getElementById('api-url').value.trim();
+      appConfig.apiKey = document.getElementById('api-key').value.trim();
+      appConfig.apiModel = document.getElementById('api-model').value.trim();
+      appConfig.breakTag = document.getElementById('api-break').value.trim() || '[BREAK]';
+      localStorage.setItem('app_config', JSON.stringify(appConfig));
+      showToast('API 设置已保存');
+    });
+
+    document.getElementById('save-contact-btn').addEventListener('click', () => {
+      contactInfo.name = document.getElementById('contact-name').value.trim();
+      contactInfo.prompt = document.getElementById('contact-prompt').value.trim();
+      localStorage.setItem('app_contact', JSON.stringify(contactInfo));
+      showToast('联系人配置已保存');
+    });
+
+    document.getElementById('save-user-btn').addEventListener('click', () => {
+      userInfo.name = document.getElementById('user-name').value.trim();
+      userInfo.prompt = document.getElementById('user-prompt').value.trim();
+      localStorage.setItem('app_user', JSON.stringify(userInfo));
+      showToast('用户自设已保存');
+    });
+
+    // --- 3. 世界书 (Worldbook) 模块 ---
+    const wbListContainer = document.getElementById('wb-list');
+
+    function renderWorldbook() {
+      wbListContainer.innerHTML = '';
+      worldbook.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'list-item-card';
+
+        const keysHtml = item.keys.map(k => `<span class="tag">${k}</span>`).join('');
+        card.innerHTML = `
+          <div class="list-item-header">
+            <div>${keysHtml}</div>
+            <button class="btn-secondary" onclick="deleteWbItem('${item.id}')">删除</button>
+          </div>
+          <div style="font-size: 13px; color: #555;">${item.content}</div>
+        `;
+        wbListContainer.appendChild(card);
+      });
+    }
+
+    document.getElementById('add-wb-btn').addEventListener('click', () => {
+      const keysInput = document.getElementById('wb-keys').value.trim();
+      const contentInput = document.getElementById('wb-content').value.trim();
+
+      if (!keysInput || !contentInput) {
+        showToast('请填写关键词和内容');
+        return;
+      }
+
+      const keys = keysInput.split(/[,，\s]+/).filter(Boolean);
+      worldbook.push({
+        id: 'wb-' + Date.now(),
+        keys: keys,
+        content: contentInput
+      });
+
+      localStorage.setItem('app_worldbook', JSON.stringify(worldbook));
+      renderWorldbook();
+
+      document.getElementById('wb-keys').value = '';
+      document.getElementById('wb-content').value = '';
+      showToast('词条添加成功');
+    });
+
+    window.deleteWbItem = function(id) {
+      worldbook = worldbook.filter(item => item.id !== id);
+      localStorage.setItem('app_worldbook', JSON.stringify(worldbook));
+      renderWorldbook();
+      showToast('词条已删除');
+    };
+
+    // 世界书检索逻辑：匹配用户输入的关键词
+    function scanWorldbook(userInput) {
+      const matchedEntries = [];
+      worldbook.forEach(entry => {
+        const hit = entry.keys.some(key => userInput.includes(key));
+        if (hit) {
+          matchedEntries.push(entry);
+        }
+      });
+      return matchedEntries;
+    }
+
+    renderWorldbook();
+
+    // --- 4. 消息交互与 API 请求构建 ---
     const chatHistory = document.getElementById('chat-history');
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
 
     let messages = [
       { id: '1', role: 'bot', text: '你好！我是你的 AI 助手。' },
-      { id: '2', role: 'bot', text: '试着长按我的消息，可以弹出删除菜单哦。' }
+      { id: '2', role: 'bot', text: '试着在输入框输入带有世界书关键词（如“模电”或“火锅”）的消息！' }
     ];
 
     function renderMessages() {
@@ -333,50 +653,123 @@
 
         const avatar = document.createElement('div');
         avatar.className = `avatar ${msg.role}`;
-        avatar.innerText = msg.role === 'bot' ? 'AI' : 'ME';
+        avatar.innerText = msg.role === 'bot' ? contactInfo.name.slice(0, 2) : userInfo.name.slice(0, 2);
 
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
         bubble.innerText = msg.text;
 
+        if (msg.debugWb && msg.debugWb.length > 0) {
+          const debugDiv = document.createElement('div');
+          debugDiv.className = 'debug-info';
+          debugDiv.innerText = `🔍 唤醒世界书: ${msg.debugWb.join(', ')}`;
+          bubble.appendChild(debugDiv);
+        }
+
         row.appendChild(avatar);
         row.appendChild(bubble);
         chatHistory.appendChild(row);
 
-        // 绑定长按/右键事件
         bindContextMenu(row, msg.id);
       });
       chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
-    // --- 3. 模拟发送与 AI 多条拆分回复 ---
-    function handleSend() {
+    async function handleSend() {
       const text = chatInput.value.trim();
       if (!text) return;
 
-      // 添加用户消息
+      // 1. 扫描匹配的世界书
+      const matchedWb = scanWorldbook(text);
+      const matchedKeys = matchedWb.map(w => w.keys.join('/'));
+
+      // 2. 渲染用户消息
       const userMsgId = Date.now().toString();
-      messages.push({ id: userMsgId, role: 'user', text: text });
+      messages.push({
+        id: userMsgId,
+        role: 'user',
+        text: text,
+        debugWb: matchedKeys
+      });
       chatInput.value = '';
       renderMessages();
 
-      // 模拟 AI 多条消息回复（使用 [BREAK] 分隔符拆分）
-      setTimeout(() => {
-        const rawAiResponse = "收到你的请求了！[BREAK]我现在正在测试多条拆分发送的效果。[BREAK]长按单条消息即可将其删除。";
-        const parts = rawAiResponse.split('[BREAK]');
+      // 3. 构建 API 请求 Body (包含 System Prompt + 动态世界书)
+      let systemPrompt = `你现在扮演 ${contactInfo.name}。\n人格设定: ${contactInfo.prompt}\n\n当前交谈的用户是 ${userInfo.name}。\n用户背景自设: ${userInfo.prompt}\n\n`;
 
-        // 逐条延迟发送，模拟自然连续发消息
-        parts.forEach((part, index) => {
-          setTimeout(() => {
-            messages.push({
-              id: (Date.now() + index).toString(),
-              role: 'bot',
-              text: part.trim()
-            });
-            renderMessages();
-          }, index * 800);
-        });
-      }, 500);
+      if (matchedWb.length > 0) {
+        systemPrompt += `【上下文触发的字典知识/世界书】:\n` + matchedWb.map(w => w.content).join('\n') + `\n\n`;
+      }
+
+      systemPrompt += `回复格式要求: 支持发送多条连续消息，不同消息之间请用 "${appConfig.breakTag}" 进行分隔。`;
+
+      // 组装 Context
+      const apiMessages = [
+        { role: 'system', content: systemPrompt },
+        ...messages.slice(-6).map(m => ({
+          role: m.role === 'bot' ? 'assistant' : 'user',
+          content: m.text
+        }))
+      ];
+
+      // 4. 调用 API 或 Mock 回复
+      sendBtn.disabled = true;
+
+      if (appConfig.apiKey) {
+        try {
+          const response = await fetch(`${appConfig.apiUrl.replace(/\/+$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${appConfig.apiKey}`
+            },
+            body: JSON.stringify({
+              model: appConfig.apiModel,
+              messages: apiMessages
+            })
+          });
+
+          const data = await response.json();
+          if (data.choices && data.choices[0]) {
+            const rawText = data.choices[0].message.content;
+            renderAiResponseParts(rawText);
+          } else {
+            showToast('API 返回数据异常');
+          }
+        } catch (err) {
+          showToast('请求失败，请检查 API 配置');
+          console.error(err);
+        } finally {
+          sendBtn.disabled = false;
+        }
+      } else {
+        // 未配置 API Key 时走 Mock 演示
+        setTimeout(() => {
+          let mockText = `（模拟回复）收到你的消息了！`;
+          if (matchedWb.length > 0) {
+            mockText += `${appConfig.breakTag}我看你提到了【${matchedKeys.join(', ')}】，相关知识库内容已动态注入给 AI 提示词中。`;
+          }
+          mockText += `${appConfig.breakTag}（提示：在设置页填入 API Key 即可体验真实 AI 请求）`;
+          renderAiResponseParts(mockText);
+          sendBtn.disabled = false;
+        }, 600);
+      }
+    }
+
+    function renderAiResponseParts(rawText) {
+      const tag = appConfig.breakTag;
+      const parts = rawText.split(tag).filter(p => p.trim());
+
+      parts.forEach((part, index) => {
+        setTimeout(() => {
+          messages.push({
+            id: (Date.now() + index).toString(),
+            role: 'bot',
+            text: part.trim()
+          });
+          renderMessages();
+        }, index * 700);
+      });
     }
 
     sendBtn.addEventListener('click', handleSend);
@@ -384,7 +777,7 @@
       if (e.key === 'Enter') handleSend();
     });
 
-    // --- 4. 微信风格长按 / 右键删除菜单 ---
+    // --- 5. 长按 / 右键删除菜单 ---
     const menuMask = document.getElementById('menu-mask');
     const contextMenu = document.getElementById('context-menu');
     const btnDeleteMsg = document.getElementById('btn-delete-msg');
@@ -392,18 +785,16 @@
     let longTouchTimer = null;
 
     function bindContextMenu(element, msgId) {
-      // 桌面端右键
       element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         showMenu(e.clientX, e.clientY, msgId);
       });
 
-      // 移动端长按 (touchstart / touchend)
       element.addEventListener('touchstart', (e) => {
         longTouchTimer = setTimeout(() => {
           const touch = e.touches[0];
           showMenu(touch.clientX, touch.clientY, msgId);
-        }, 500); // 500ms 触发长按
+        }, 500);
       }, { passive: true });
 
       element.addEventListener('touchend', () => clearTimeout(longTouchTimer));
@@ -414,7 +805,6 @@
       targetMsgId = msgId;
       menuMask.style.display = 'block';
 
-      // 防止菜单超出屏幕右侧/下侧
       const menuWidth = 80;
       const menuHeight = 36;
       const posX = Math.min(x, window.innerWidth - menuWidth - 10);
