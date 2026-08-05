@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AI 社交 Client 原型</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #ededed;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 顶部导航 */
+    .header {
+      height: 48px;
+      background: #f7f7f7;
+      border-bottom: 1px solid #dcdcdc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* 主内容区 */
+    .content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tab-page {
+      display: none;
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: #ededed;
+    }
+
+    .tab-page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 消息页面专用布局 */
+    #chat-history {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .message-row.user {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 4px;
+      background-color: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #fff;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .avatar.bot { background-color: #07c160; }
+    .avatar.user { background-color: #108ee9; }
+
+    .bubble {
+      max-width: 70%;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 15px;
+      line-height: 1.4;
+      word-break: break-all;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .message-row.bot .bubble {
+      background-color: #ffffff;
+      color: #000;
+    }
+
+    .message-row.user .bubble {
+      background-color: #95ec69;
+      color: #000;
+    }
+
+    /* 输入区域 */
+    .input-bar {
+      padding: 8px 12px;
+      background: #f7f7f7;
+      border-top: 1px solid #dcdcdc;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-bar input {
+      flex: 1;
+      height: 36px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 0 10px;
+      font-size: 15px;
+      outline: none;
+      background: #fff;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .input-bar button {
+      padding: 0 14px;
+      height: 36px;
+      background: #07c160;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* 底部导航栏 */
+    .tab-bar {
+      height: 54px;
+      background: #f7f7f7;
+      border-top: 1px solid #dcdcdc;
+      display: flex;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #7f7f7f;
+      cursor: pointer;
+    }
+
+    .tab-item.active {
+      color: #07c160;
+    }
+
+    .tab-item .icon {
+      font-size: 18px;
+      margin-bottom: 2px;
+    }
+
+    /* 长按菜单遮罩与浮窗 */
+    .context-menu-mask {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.15);
+      z-index: 100;
+    }
+
+    .context-menu {
+      position: absolute;
+      background: #4c4c4c;
+      border-radius: 6px;
+      padding: 4px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: flex;
+      z-index: 101;
+    }
+
+    .context-menu-item {
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .context-menu-item:active {
+      background: #3a3a3a;
+    }
+
+    /* 占位展示卡片 */
+    .placeholder-page {
+      padding: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header" id="header-title">消息</div>
+
+  <div class="content">
+    <!-- 消息页 -->
+    <div class="tab-page active" id="page-chat">
+      <div id="chat-history"></div>
+      <div class="input-bar">
+        <input type="text" id="chat-input" placeholder="发送消息..." />
+        <button id="send-btn">发送</button>
+      </div>
+    </div>
+
+    <!-- 其他 Tab 占位页 -->
+    <div class="tab-page" id="page-contacts">
+      <div class="placeholder-page">
+        <h3>联系人列表</h3>
+        <p style="margin-top: 10px;">此处维护联系人人格、关联世界书及认定 User 身份。</p>
+      </div>
+    </div>
+
+    <div class="tab-page" id="page-profile">
+      <div class="placeholder-page">
+        <h3>自设管理</h3>
+        <p style="margin-top: 10px;">此处配置多套用户身份 Prompt。</p>
+      </div>
+    </div>
+
+    <div class="tab-page" id="page-worldbook">
+      <div class="placeholder-page">
+        <h3>世界书</h3>
+        <p style="margin-top: 10px;">字典式知识库，关键词精准唤醒。</p>
+      </div>
+    </div>
+
+    <div class="tab-page" id="page-settings">
+      <div class="placeholder-page">
+        <h3>系统设置</h3>
+        <p style="margin-top: 10px;">API BaseURL/Key、MCP 扩展与导入导出。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部 Tab 栏 -->
+  <div class="tab-bar">
+    <div class="tab-item active" data-tab="chat" data-title="消息">
+      <span class="icon">💬</span>
+      <span>消息</span>
+    </div>
+    <div class="tab-item" data-tab="contacts" data-title="联系人">
+      <span class="icon">👥</span>
+      <span>联系人</span>
+    </div>
+    <div class="tab-item" data-tab="profile" data-title="自设">
+      <span class="icon">👤</span>
+      <span>自设</span>
+    </div>
+    <div class="tab-item" data-tab="worldbook" data-title="世界书">
+      <span class="icon">📖</span>
+      <span>世界书</span>
+    </div>
+    <div class="tab-item" data-tab="settings" data-title="设置">
+      <span class="icon">⚙️</span>
+      <span>设置</span>
+    </div>
+  </div>
+
+  <!-- 长按右键菜单 -->
+  <div class="context-menu-mask" id="menu-mask">
+    <div class="context-menu" id="context-menu">
+      <div class="context-menu-item" id="btn-delete-msg">删除</div>
+    </div>
+  </div>
+
+  <script>
+    // --- 1. Tab 切换逻辑 ---
+    const tabItems = document.querySelectorAll('.tab-item');
+    const tabPages = document.querySelectorAll('.tab-page');
+    const headerTitle = document.getElementById('header-title');
+
+    tabItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const targetTab = item.dataset.tab;
+        const targetTitle = item.dataset.title;
+
+        tabItems.forEach(i => i.classList.remove('active'));
+        tabPages.forEach(p => p.classList.remove('active'));
+
+        item.classList.add('active');
+        document.getElementById(`page-${targetTab}`).classList.add('active');
+        headerTitle.innerText = targetTitle;
+      });
+    });
+
+    // --- 2. 消息数据与渲染机制 ---
+    const chatHistory = document.getElementById('chat-history');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    let messages = [
+      { id: '1', role: 'bot', text: '你好！我是你的 AI 助手。' },
+      { id: '2', role: 'bot', text: '试着长按我的消息，可以弹出删除菜单哦。' }
+    ];
+
+    function renderMessages() {
+      chatHistory.innerHTML = '';
+      messages.forEach(msg => {
+        const row = document.createElement('div');
+        row.className = `message-row ${msg.role}`;
+        row.dataset.id = msg.id;
+
+        const avatar = document.createElement('div');
+        avatar.className = `avatar ${msg.role}`;
+        avatar.innerText = msg.role === 'bot' ? 'AI' : 'ME';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.innerText = msg.text;
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        chatHistory.appendChild(row);
+
+        // 绑定长按/右键事件
+        bindContextMenu(row, msg.id);
+      });
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // --- 3. 模拟发送与 AI 多条拆分回复 ---
+    function handleSend() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      // 添加用户消息
+      const userMsgId = Date.now().toString();
+      messages.push({ id: userMsgId, role: 'user', text: text });
+      chatInput.value = '';
+      renderMessages();
+
+      // 模拟 AI 多条消息回复（使用 [BREAK] 分隔符拆分）
+      setTimeout(() => {
+        const rawAiResponse = "收到你的请求了！[BREAK]我现在正在测试多条拆分发送的效果。[BREAK]长按单条消息即可将其删除。";
+        const parts = rawAiResponse.split('[BREAK]');
+
+        // 逐条延迟发送，模拟自然连续发消息
+        parts.forEach((part, index) => {
+          setTimeout(() => {
+            messages.push({
+              id: (Date.now() + index).toString(),
+              role: 'bot',
+              text: part.trim()
+            });
+            renderMessages();
+          }, index * 800);
+        });
+      }, 500);
+    }
+
+    sendBtn.addEventListener('click', handleSend);
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSend();
+    });
+
+    // --- 4. 微信风格长按 / 右键删除菜单 ---
+    const menuMask = document.getElementById('menu-mask');
+    const contextMenu = document.getElementById('context-menu');
+    const btnDeleteMsg = document.getElementById('btn-delete-msg');
+    let targetMsgId = null;
+    let longTouchTimer = null;
+
+    function bindContextMenu(element, msgId) {
+      // 桌面端右键
+      element.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showMenu(e.clientX, e.clientY, msgId);
+      });
+
+      // 移动端长按 (touchstart / touchend)
+      element.addEventListener('touchstart', (e) => {
+        longTouchTimer = setTimeout(() => {
+          const touch = e.touches[0];
+          showMenu(touch.clientX, touch.clientY, msgId);
+        }, 500); // 500ms 触发长按
+      }, { passive: true });
+
+      element.addEventListener('touchend', () => clearTimeout(longTouchTimer));
+      element.addEventListener('touchmove', () => clearTimeout(longTouchTimer));
+    }
+
+    function showMenu(x, y, msgId) {
+      targetMsgId = msgId;
+      menuMask.style.display = 'block';
+
+      // 防止菜单超出屏幕右侧/下侧
+      const menuWidth = 80;
+      const menuHeight = 36;
+      const posX = Math.min(x, window.innerWidth - menuWidth - 10);
+      const posY = Math.min(y, window.innerHeight - menuHeight - 10);
+
+      contextMenu.style.left = `${posX}px`;
+      contextMenu.style.top = `${posY}px`;
+    }
+
+    function hideMenu() {
+      menuMask.style.display = 'none';
+      targetMsgId = null;
+    }
+
+    menuMask.addEventListener('click', hideMenu);
+
+    btnDeleteMsg.addEventListener('click', () => {
+      if (targetMsgId) {
+        messages = messages.filter(m => m.id !== targetMsgId);
+        renderMessages();
+      }
+      hideMenu();
+    });
+
+    // 初始化渲染
+    renderMessages();
+  </script>
+</body>
+</html>
