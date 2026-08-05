@@ -266,7 +266,7 @@
                     <!-- 顶部辅助线 -->
                     <line x1="400" y1="40" x2="400" y2="100" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="5,5"/>
 
-                    <!-- 领带图形 (默认隐藏，字幕结束后出现) -->
+                    <!-- 领带图形 (默认隐藏) -->
                     <g class="tie-group" id="tieGroup">
                         <!-- 领带结 -->
                         <polygon points="392,42 408,42 405,52 395,52" fill="#f43f5e" stroke="#be123c" stroke-width="1"/>
@@ -365,7 +365,8 @@
     <div class="subtitle-box" id="subtitleBox"></div>
 
     <script>
-        const subtitles = [
+        // 第一段：前置剧情
+        const introSubtitles = [
             "隔壁班新转来一个正太",
             "他靠扭腰吸引了很多妹子",
             "我们都扭不过他",
@@ -374,48 +375,63 @@
             "什么⁉把我的领带拿来"
         ];
 
+        // 第二段：扭腰伴舞字幕
+        const twistSubtitles = [
+            "左边画个虫虫",
+            "右边画个龙龙",
+            "不要对我凶凶",
+            "我的心会痛痛"
+        ];
+
         const playBtn = document.getElementById('playBtn');
         const subtitleBox = document.getElementById('subtitleBox');
         const twistArea = document.getElementById('twistArea');
         const tieGroup = document.getElementById('tieGroup');
         let isPlaying = false;
 
+        // 通用字幕播放函数
+        function playTextSequence(textArray, index, onComplete) {
+            if (index < textArray.length) {
+                subtitleBox.textContent = textArray[index];
+                subtitleBox.classList.add('show');
+
+                // 每条展示 1 秒（1000ms）
+                setTimeout(() => {
+                    subtitleBox.classList.remove('show');
+                    
+                    // 间隔 200ms 后播放下一句或结束
+                    setTimeout(() => {
+                        playTextSequence(textArray, index + 1, onComplete);
+                    }, 200);
+                }, 1000);
+            } else {
+                if (onComplete) onComplete();
+            }
+        }
+
         playBtn.addEventListener('click', () => {
             if (isPlaying) return;
             isPlaying = true;
             playBtn.classList.add('disabled');
 
-            let index = 0;
+            // 1. 先播放前置剧情
+            playTextSequence(introSubtitles, 0, () => {
+                
+                // 2. 剧情播完：戴上领带，开始扭腰
+                tieGroup.classList.add('show');
+                twistArea.classList.add('animating');
 
-            function showNextSubtitle() {
-                if (index < subtitles.length) {
-                    const currentText = subtitles[index];
-                    subtitleBox.textContent = currentText;
-                    subtitleBox.classList.add('show');
+                // 3. 同时开始播放扭腰伴舞字幕
+                playTextSequence(twistSubtitles, 0, () => {
+                    // 伴舞字幕播完后（4句 * 1.2秒 = 4.8秒，刚好配合动作结束）
+                    // 停止扭腰，恢复原状
+                    twistArea.classList.remove('animating');
+                    tieGroup.classList.remove('show');
+                    isPlaying = false;
+                    playBtn.classList.remove('disabled');
+                });
 
-                    // 每条字幕展示 1 秒（1000ms）
-                    setTimeout(() => {
-                        subtitleBox.classList.remove('show');
-                        index++;
-                        // 间隔 200ms 出现下一条
-                        setTimeout(showNextSubtitle, 200);
-                    }, 1000);
-                } else {
-                    // 全部字幕播放完毕后，开始佩戴领带并扭腰！
-                    tieGroup.classList.add('show');
-                    twistArea.classList.add('animating');
-
-                    // 扭腰持续 5 秒
-                    setTimeout(() => {
-                        twistArea.classList.remove('animating');
-                        tieGroup.classList.remove('show');
-                        isPlaying = false;
-                        playBtn.classList.remove('disabled');
-                    }, 5000);
-                }
-            }
-
-            showNextSubtitle();
+            });
         });
     </script>
 </body>
