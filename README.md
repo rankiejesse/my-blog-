@@ -1,8 +1,5 @@
 # my-blog-
 
-Hello world
-baby
-
 这是我的练手仓库。刚来 GitHub 不久，拿这里试各种功能用的。
 
 当前进度：
