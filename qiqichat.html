@@ -21,40 +21,51 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-primary); overflow: hidden; }
 
-        /* 侧边导航 */
-        .sidebar { width: 70px; background-color: var(--sidebar-bg); display: flex; flex-direction: column; align-items: center; padding-top: 20px; border-right: 1px solid var(--border-color); }
+        /* 主侧边导航 - 支持收起 */
+        .sidebar { width: 70px; background-color: var(--sidebar-bg); display: flex; flex-direction: column; align-items: center; padding-top: 20px; border-right: 1px solid var(--border-color); transition: width 0.3s ease; position: relative; flex-shrink: 0; }
+        .sidebar.collapsed { width: 0; padding: 0; overflow: hidden; border: none; }
         .nav-item { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; cursor: pointer; transition: all 0.2s; font-size: 20px; }
-        .nav-item:hover, .nav-item.active { background-color: var(--card-bg); color: var(--primary-color); shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .nav-item:hover, .nav-item.active { background-color: var(--card-bg); color: var(--primary-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        /* 折叠/展开控制按钮 */
+        .toggle-btn { position: absolute; bottom: 20px; cursor: pointer; background: var(--card-bg); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); font-size: 12px; z-index: 100; border: 1px solid var(--border-color); }
 
         /* 主内容区 */
-        .main-container { flex: 1; display: flex; overflow: hidden; }
+        .main-container { flex: 1; display: flex; overflow: hidden; position: relative; }
         .panel { display: none; width: 100%; height: 100%; }
         .panel.active { display: flex; }
 
         /* 顶部状态栏（天气与时间） */
-        .status-bar { height: 40px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 13px; color: var(--text-secondary); }
+        .status-bar { height: 44px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 13px; color: var(--text-secondary); }
 
-        /* 通用列表与详情分栏 */
-        .sub-sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .sub-header { padding: 15px; border-bottom: 1px solid var(--border-color); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .item-list { flex: 1; overflow-y: auto; }
+        /* 通用子列表与详情分栏 - 支持折叠 */
+        .sub-sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: width 0.3s ease; flex-shrink: 0; }
+        .sub-sidebar.collapsed { width: 0; overflow: hidden; border: none; }
+        .sub-header { padding: 15px; border-bottom: 1px solid var(--border-color); font-weight: 600; display: flex; justify-content: space-between; align-items: center; min-width: 260px; }
+        .item-list { flex: 1; overflow-y: auto; min-width: 260px; }
         .list-item { padding: 12px 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .list-item:hover, .list-item.active { background-color: #f0f0f5; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-size: cover; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-size: cover; flex-shrink: 0; }
 
-        .content-area { flex: 1; display: flex; flex-direction: column; background: var(--card-bg); }
+        .content-area { flex: 1; display: flex; flex-direction: column; background: var(--card-bg); overflow: hidden; }
 
         /* 消息模块专项样式 */
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f9f9fb; }
-        .message-row { display: flex; gap: 10px; max-width: 70%; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: #f9f9fb; }
+        .message-row { display: flex; gap: 10px; max-width: 75%; align-items: flex-end; position: relative; }
         .message-row.user { align-self: flex-end; flex-direction: row-reverse; }
-        .message-bubble { padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; position: relative; user-select: none; word-break: break-word; }
+        .message-bubble { padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; position: relative; user-select: text; word-break: break-word; }
         .message-row.ai .message-bubble { background: var(--chat-bubble-ai); color: var(--text-primary); border-top-left-radius: 4px; }
         .message-row.user .message-bubble { background: var(--chat-bubble-user); color: white; border-top-right-radius: 4px; }
+
+        /* 显式消息删除按钮 */
+        .msg-del-btn { display: none; cursor: pointer; color: var(--danger-color); font-size: 12px; padding: 4px; background: rgba(0,0,0,0.05); border-radius: 4px; border: none; }
+        .message-row:hover .msg-del-btn { display: block; }
+
         .chat-input-area { padding: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; background: var(--card-bg); }
         .chat-input { flex: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 15px; outline: none; font-size: 14px; }
-        .btn { padding: 8px 16px; border-radius: 18px; border: none; background: var(--primary-color); color: white; cursor: pointer; font-weight: 500; }
+        .btn { padding: 6px 14px; border-radius: 18px; border: none; background: var(--primary-color); color: white; cursor: pointer; font-weight: 500; font-size: 13px; }
         .btn:hover { opacity: 0.9; }
+        .btn-icon { background: transparent; color: var(--text-secondary); padding: 4px 8px; font-size: 14px; }
 
         /* 表单与设置面板 */
         .form-container { padding: 20px; overflow-y: auto; flex: 1; max-width: 800px; }
@@ -62,23 +73,20 @@
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; color: var(--text-secondary); }
         .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; }
         textarea.form-control { resize: vertical; min-height: 80px; }
-
-        /* 长按右键菜单 */
-        .context-menu { display: none; position: absolute; background: white; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; z-index: 1000; padding: 5px 0; }
-        .context-menu-item { padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--danger-color); }
-        .context-menu-item:hover { background: #f5f5f7; }
     </style>
 </head>
 <body>
 
-    <!-- 侧边导航栏 -->
-    <div class="sidebar">
+    <!-- 主侧边导航栏 -->
+    <div class="sidebar" id="main-sidebar">
         <div class="nav-item active" onclick="switchTab('chat')" title="消息">💬</div>
         <div class="nav-item" onclick="switchTab('contacts')" title="联系人">👤</div>
         <div class="nav-item" onclick="switchTab('persona')" title="自设">🎭</div>
         <div class="nav-item" onclick="switchTab('worldbook')" title="世界书">📚</div>
         <div class="nav-item" onclick="switchTab('settings')" title="设置">⚙️</div>
         <div class="nav-item" onclick="switchTab('other')" title="其他">🧩</div>
+
+        <div class="toggle-btn" onclick="toggleMainSidebar()" title="折叠/展开主菜单">◄</div>
     </div>
 
     <!-- 主窗口区 -->
@@ -86,20 +94,25 @@
 
         <!-- 1. 消息模块 -->
         <div id="panel-chat" class="panel active">
-            <div class="sub-sidebar">
-                <div class="sub-header">消息列表</div>
-                <div class="item-list" id="chat-list">
-                    <!-- 动态渲染联系人消息列表 -->
+            <div class="sub-sidebar" id="sub-sidebar-chat">
+                <div class="sub-header">
+                    <span>消息列表</span>
+                    <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-chat')" title="收起列表">◀</button>
                 </div>
+                <div class="item-list" id="chat-list"></div>
             </div>
             <div class="content-area">
                 <div class="status-bar">
-                    <span id="current-time">系统时间: --:--:--</span>
-                    <span id="current-weather">🌤️ 晴 24°C</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-chat')" title="展开/收起列表">☰ 列表</button>
+                        <span id="current-time">系统时间: --:--:--</span>
+                    </div>
+                    <div>
+                        <span id="current-weather" style="margin-right:15px">🌤️ 晴 24°C</span>
+                        <button class="btn" style="background:var(--danger-color); font-size:12px;" onclick="clearCurrentChatHistory()">清空聊天记录</button>
+                    </div>
                 </div>
-                <div class="chat-messages" id="chat-messages">
-                    <!-- 动态渲染聊天对话内容 -->
-                </div>
+                <div class="chat-messages" id="chat-messages"></div>
                 <div class="chat-input-area">
                     <input type="text" class="chat-input" id="chat-input" placeholder="发送消息..." onkeydown="if(event.key==='Enter') sendMessage()">
                     <button class="btn" onclick="sendMessage()">发送</button>
@@ -109,16 +122,20 @@
 
         <!-- 2. 联系人模块 -->
         <div id="panel-contacts" class="panel">
-            <div class="sub-sidebar">
+            <div class="sub-sidebar" id="sub-sidebar-contacts">
                 <div class="sub-header">
-                    联系人
-                    <button class="btn" style="padding:4px 8px; font-size:12px" onclick="addNewContact()">+ 新建</button>
+                    <span>联系人</span>
+                    <div>
+                        <button class="btn" style="padding:4px 8px; font-size:12px" onclick="addNewContact()">+ 新建</button>
+                        <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-contacts')" title="收起列表">◀</button>
+                    </div>
                 </div>
-                <div class="item-list" id="contact-list">
-                    <!-- 动态渲染联系人 -->
-                </div>
+                <div class="item-list" id="contact-list"></div>
             </div>
             <div class="content-area">
+                <div class="status-bar">
+                    <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-contacts')">☰ 列表</button>
+                </div>
                 <div class="form-container" id="contact-detail">
                     <h3>联系人配置</h3><br>
                     <div class="form-group">
@@ -134,12 +151,11 @@
                         <select class="form-control" id="c-persona" onchange="saveCurrentContact()"></select>
                     </div>
                     <div class="form-group">
-                        <label>挂载世界书 (可多选/按需提取)</label>
+                        <label>挂载世界书 (按 Ctrl/Cmd 可多选)</label>
                         <select class="form-control" id="c-worldbooks" multiple onchange="saveCurrentContact()"></select>
                     </div>
                     <div class="form-group">
-                        <button class="btn" style="background:var(--danger-color)" onclick="clearCurrentChatHistory()">清空聊天记录</button>
-                        <button class="btn" style="background:#8e8e93" onclick="deleteCurrentContact()">删除此联系人</button>
+                        <button class="btn" style="background:var(--danger-color)" onclick="deleteCurrentContact()">删除此联系人</button>
                     </div>
                 </div>
             </div>
@@ -147,14 +163,20 @@
 
         <!-- 3. 自设模块 -->
         <div id="panel-persona" class="panel">
-            <div class="sub-sidebar">
+            <div class="sub-sidebar" id="sub-sidebar-persona">
                 <div class="sub-header">
-                    用户自设列表
-                    <button class="btn" style="padding:4px 8px; font-size:12px" onclick="addNewPersona()">+ 新建</button>
+                    <span>用户自设列表</span>
+                    <div>
+                        <button class="btn" style="padding:4px 8px; font-size:12px" onclick="addNewPersona()">+ 新建</button>
+                        <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-persona')">◀</button>
+                    </div>
                 </div>
                 <div class="item-list" id="persona-list"></div>
             </div>
             <div class="content-area">
+                <div class="status-bar">
+                    <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-persona')">☰ 列表</button>
+                </div>
                 <div class="form-container">
                     <h3>自设档案编辑</h3><br>
                     <div class="form-group">
@@ -171,19 +193,25 @@
 
         <!-- 4. 世界书模块 -->
         <div id="panel-worldbook" class="panel">
-            <div class="sub-sidebar">
+            <div class="sub-sidebar" id="sub-sidebar-wb">
                 <div class="sub-header">
-                    世界书词典
-                    <button class="btn" style="padding:4px 8px; font-size:12px" onclick="addNewWorldbookEntry()">+ 新词条</button>
+                    <span>世界书词典</span>
+                    <div>
+                        <button class="btn" style="padding:4px 8px; font-size:12px" onclick="addNewWorldbookEntry()">+ 新词条</button>
+                        <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-wb')">◀</button>
+                    </div>
                 </div>
                 <div class="item-list" id="worldbook-list"></div>
             </div>
             <div class="content-area">
+                <div class="status-bar">
+                    <button class="btn btn-icon" onclick="toggleSubSidebar('sub-sidebar-wb')">☰ 列表</button>
+                </div>
                 <div class="form-container">
                     <h3>词条深度配置（仅命中关键词时吃进上下文）</h3><br>
                     <div class="form-group">
                         <label>触发关键词（逗号分隔）</label>
-                        <input type="text" class="form-control" id="wb-keys" placeholder="例如: 魔法, 学院, 阵营" onchange="saveCurrentWB()">
+                        <input type="text" class="form-control" id="wb-keys" placeholder="例如: 魔法, 学院" onchange="saveCurrentWB()">
                     </div>
                     <div class="form-group">
                         <label>设定条目内容</label>
@@ -211,18 +239,6 @@
                         <input type="text" class="form-control" id="cfg-model" value="gpt-4o">
                     </div>
                     <hr style="margin:20px 0; border:none; border-top:1px solid var(--border-color)"><br>
-                    <h2>MCP (Model Context Protocol) 服务挂载</h2><br>
-                    <div class="form-group">
-                        <label>MCP 服务端 Endpoints (SSE/WebSocket)</label>
-                        <input type="text" class="form-control" placeholder="ws://localhost:8080/mcp">
-                    </div>
-                    <hr style="margin:20px 0; border:none; border-top:1px solid var(--border-color)"><br>
-                    <h2>软件与系统消息监听权限</h2><br>
-                    <div class="form-group">
-                        <label><input type="checkbox" checked> 允许 Bot 监听通知栏消息 (免打扰软件除外)</label><br><br>
-                        <label><input type="checkbox" checked> 允许拉取已安装应用列表与前台运行状态</label>
-                    </div>
-                    <hr style="margin:20px 0; border:none; border-top:1px solid var(--border-color)"><br>
                     <h2>数据备份（防丢失）</h2><br>
                     <button class="btn" onclick="exportData()">导出全量配置文件 (JSON)</button>
                     <button class="btn" style="background:#34c759" onclick="document.getElementById('import-file').click()">导入配置文件</button>
@@ -243,31 +259,25 @@
 
     </div>
 
-    <!-- 长按/右键浮动菜单 -->
-    <div class="context-menu" id="context-menu">
-        <div class="context-menu-item" onclick="deleteTargetMessage()">删除此条消息</div>
-    </div>
-
     <script>
-        // --- 本地数据状态（模拟数据库） ---
         let appData = {
             contacts: [
-                { id: 'c1', name: '夏鸣星', prompt: '你是夏鸣星，性格有些黏人且占有欲强，对用户十分贴心。', personaId: 'p1', worldbooks: ['wb1'], history: [] }
+                { id: 'c1', name: '夏鸣星', prompt: '你是夏鸣星，性格有些黏人且占有欲强。', personaId: 'p1', worldbooks: ['wb1'], history: [
+                    { sender: 'ai', text: '你今天过得怎么样？有想我吗？' }
+                ] }
             ],
             personas: [
-                { id: 'p1', title: '主身份', desc: '一名喜欢喝热牛奶、爱吃辣的大学生。' }
+                { id: 'p1', title: '主身份', desc: '一名喜欢热牛奶、爱吃辣的大学生。' }
             ],
             worldbooks: [
-                { id: 'wb1', keys: '汤圆, 贴贴', content: '【专属昵称】夏鸣星有时会亲切地称呼对方为亲密昵称。' }
+                { id: 'wb1', keys: '汤圆, 贴贴', content: '【专属昵称】夏鸣星有时会亲切地称呼对方。' }
             ]
         };
 
         let currentActiveContactId = 'c1';
         let currentActivePersonaId = 'p1';
         let currentActiveWBId = 'wb1';
-        let targetMsgIndexToDelete = null;
 
-        // --- 初始化与时钟 ---
         window.onload = () => {
             updateClock();
             setInterval(updateClock, 1000);
@@ -279,7 +289,20 @@
             document.getElementById('current-time').innerText = `系统时间: ${now.toLocaleTimeString()}`;
         }
 
-        // --- 视图切换 ---
+        /* ----- 栏目折叠/展开逻辑 ----- */
+        function toggleMainSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            const btn = document.querySelector('.toggle-btn');
+            sidebar.classList.toggle('collapsed');
+            btn.innerText = sidebar.classList.contains('collapsed') ? '►' : '◄';
+        }
+
+        function toggleSubSidebar(id) {
+            const el = document.getElementById(id);
+            if(el) el.classList.toggle('collapsed');
+        }
+
+        /* ----- 视图切换 ----- */
         function switchTab(tabName) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
@@ -289,7 +312,6 @@
             renderAll();
         }
 
-        // --- 核心渲染逻辑 ---
         function renderAll() {
             renderChatList();
             renderChatMessages();
@@ -298,7 +320,7 @@
             renderWorldbookList();
         }
 
-        /* ----- 消息与 IM 逻辑 ----- */
+        /* ----- 消息模块与显式删除按钮 ----- */
         function renderChatList() {
             const listEl = document.getElementById('chat-list');
             listEl.innerHTML = '';
@@ -309,9 +331,9 @@
                 const lastMsg = c.history.length > 0 ? c.history[c.history.length - 1].text : '暂无消息';
                 item.innerHTML = `
                     <div class="avatar" style="background-color:#007aff">${c.name[0]}</div>
-                    <div>
+                    <div style="flex:1; overflow:hidden;">
                         <div style="font-weight:600">${c.name}</div>
-                        <div style="font-size:12px; color:var(--text-secondary); width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${lastMsg}</div>
+                        <div style="font-size:12px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${lastMsg}</div>
                     </div>
                 `;
                 listEl.appendChild(item);
@@ -332,17 +354,37 @@
                 bubble.className = 'message-bubble';
                 bubble.innerText = msg.text;
 
-                // 绑定长按 / 右键事件删除
-                bubble.oncontextmenu = (e) => {
-                    e.preventDefault();
-                    targetMsgIndexToDelete = idx;
-                    showContextMenu(e.clientX, e.clientY);
+                // 显式删除按键（鼠标悬停在气泡上即可看到小垃圾桶按钮）
+                const delBtn = document.createElement('button');
+                delBtn.className = 'msg-del-btn';
+                delBtn.innerHTML = '🗑️';
+                delBtn.title = '删除此条消息';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteSingleMessage(idx);
                 };
 
                 row.appendChild(bubble);
+                row.appendChild(delBtn);
                 container.appendChild(row);
             });
             container.scrollTop = container.scrollHeight;
+        }
+
+        function deleteSingleMessage(index) {
+            const contact = appData.contacts.find(c => c.id === currentActiveContactId);
+            if (contact) {
+                contact.history.splice(index, 1);
+                renderChatMessages();
+                renderChatList();
+            }
+        }
+
+        function clearCurrentChatHistory() {
+            if (confirm("确定要清空与当前联系人的全部聊天记录吗？")) {
+                const c = appData.contacts.find(c => c.id === currentActiveContactId);
+                if (c) { c.history = []; renderChatMessages(); renderChatList(); }
+            }
         }
 
         function sendMessage() {
@@ -355,51 +397,23 @@
             input.value = '';
             renderChatMessages();
 
-            // 模拟 AI 自动响应，支持正则分句/拆分发多条
             setTimeout(() => {
-                simulateAiResponse(contact, text);
+                simulateAiResponse(contact);
             }, 800);
         }
 
-        // 模拟 AI 回复与正则表达式多条气泡拆分
-        function simulateAiResponse(contact, userText) {
-            // 假设 AI 原始回复包含段落分隔符 \n\n 或特定标点
-            const rawAiResponse = `收到你的消息了！\n\n我现在正在想你呢，等会儿一起去吃好吃的吗？`;
-            
-            // 正则表达式分割（匹配两个或以上换行符）
+        function simulateAiResponse(contact) {
+            const rawAiResponse = `收到！\n\n那我们待会儿见。`;
             const splitRegex = /\n\n+/;
             const segments = rawAiResponse.split(splitRegex);
 
-            // 逐条模拟发送（类似真实打字间隔）
             segments.forEach((seg, index) => {
                 setTimeout(() => {
                     contact.history.push({ sender: 'ai', text: seg });
                     renderChatMessages();
                     renderChatList();
-                }, index * 1200);
+                }, index * 1000);
             });
-        }
-
-        /* ----- 右键 / 长按删除菜单 ----- */
-        function showContextMenu(x, y) {
-            const menu = document.getElementById('context-menu');
-            menu.style.left = `${x}px`;
-            menu.style.top = `${y}px`;
-            menu.style.display = 'block';
-        }
-
-        document.addEventListener('click', () => {
-            document.getElementById('context-menu').style.display = 'none';
-        });
-
-        function deleteTargetMessage() {
-            if (targetMsgIndexToDelete !== null) {
-                const contact = appData.contacts.find(c => c.id === currentActiveContactId);
-                contact.history.splice(targetMsgIndexToDelete, 1);
-                targetMsgIndexToDelete = null;
-                renderChatMessages();
-                renderChatList();
-            }
         }
 
         /* ----- 联系人配置逻辑 ----- */
@@ -422,14 +436,12 @@
             document.getElementById('c-name').value = c.name;
             document.getElementById('c-prompt').value = c.prompt;
 
-            // 动态填充自设下拉框
             const pSelect = document.getElementById('c-persona');
             pSelect.innerHTML = '';
             appData.personas.forEach(p => {
                 pSelect.innerHTML += `<option value="${p.id}" ${p.id === c.personaId ? 'selected' : ''}>${p.title}</option>`;
             });
 
-            // 动态填充世界书下拉框
             const wbSelect = document.getElementById('c-worldbooks');
             wbSelect.innerHTML = '';
             appData.worldbooks.forEach(wb => {
@@ -458,14 +470,11 @@
         }
 
         function deleteCurrentContact() {
-            appData.contacts = appData.contacts.filter(c => c.id !== currentActiveContactId);
-            if (appData.contacts.length > 0) currentActiveContactId = appData.contacts[0].id;
-            renderAll();
-        }
-
-        function clearCurrentChatHistory() {
-            const c = appData.contacts.find(c => c.id === currentActiveContactId);
-            if (c) { c.history = []; renderChatMessages(); renderChatList(); }
+            if (confirm("确定要删除该联系人及其全部数据吗？")) {
+                appData.contacts = appData.contacts.filter(c => c.id !== currentActiveContactId);
+                if (appData.contacts.length > 0) currentActiveContactId = appData.contacts[0].id;
+                renderAll();
+            }
         }
 
         /* ----- 自设与世界书逻辑 ----- */
@@ -539,7 +548,7 @@
             renderWorldbookList();
         }
 
-        /* ----- 导出与导入（防丢失） ----- */
+        /* ----- 数据导出与导入 ----- */
         function exportData() {
             const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
